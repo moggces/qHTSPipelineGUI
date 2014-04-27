@@ -36,7 +36,7 @@ shinyUI(pageWithSidebar(
     
     h4('Secondary parameters'),
     textInput('cro', 'carryover threshold: ', '80'),
-    textInput('ushape', 'min.#points for u-shape: ', '2'),
+    textInput('ushape', 'min.#points for u-shape: ', '4'),
     textInput('bshift', 'min.#flat points to detect baseline-shift: ', '3'),
     checkboxInput("cort_bshift", "baseline shift correction mode", FALSE),
     checkboxInput("bylo", "favors corrections based on low conc-s", TRUE),
