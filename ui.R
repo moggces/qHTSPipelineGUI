@@ -15,7 +15,7 @@ shinyUI(pageWithSidebar(
     
     h4('Data'),
     fileInput('file1', 'Import a file with required columns', multiple=FALSE),
-    helpText("Required columns: uniqueID, conc[0-9], resp[0-9] (-100% ~ 100%, 0%: baseline). Optional: Mask.Flags"),
+    helpText("Required columns: uniqueID, conc[0-9], resp[0-9] (-100% ~ 100%, 0%: baseline). Optional: Mask.Flags or curvep_mask"),
     
     tags$br(),
     
@@ -46,7 +46,7 @@ shinyUI(pageWithSidebar(
     
     tags$br(),
     
-    h4('Additional curve curation'),
+    h4('Additional curve curation (under construction)'),
     tags$br(),
     
     h5('Spike detection'),
@@ -71,7 +71,7 @@ shinyUI(pageWithSidebar(
   mainPanel(
     
     tabsetPanel(
-      tabPanel( 'Test1', dataTableOutput('test1')),
+      tabPanel( 'Output', dataTableOutput('test1')),
       tabPanel( 'Test2', textOutput('test2'))
       #tabPanel( "Plot", plotOutput("plot", height="auto", width="auto"))
       #tabPanel("Data", dataTableOutput('qhts_data')),
