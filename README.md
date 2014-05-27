@@ -26,7 +26,7 @@ Tab-delimited files with four sets of required columns:
 Additional Input
 ----------------
 
-- mask column: *Mask.Flags* or *curvep_mask* (Mask.Flags column has higher priority)
+- mask column: *mask* column
 - cytotoxicity data: the required columns plus the *curvep_r[0-9]+* columns 
 - unused columns will be kept
 
