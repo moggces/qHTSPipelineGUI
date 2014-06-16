@@ -118,7 +118,7 @@ get_curvep_results <- function (qhts,  paras, calculation_dir)
 # }
 
 
-########### if only the last concentration, there won't be any mask
+
 get_cyto2mask <- function (cytoqhts, thr)
 {
   curvep_resps <- cytoqhts$curvep_resps
@@ -154,31 +154,7 @@ get_cyto2mask <- function (cytoqhts, thr)
           return(mask[x,])
         }))
   
-#   for ( x in 1:nrow(mask) )
-#   {
-#     if ( ! is.na(l[x]) )
-#     {
-#       # if the lowest concentration is masked
-#       if (l[x] == 1 )
-#       {
-#         mask[x, ] <- 0
-#       } else
-#       {
-#         if (is.na(thr))
-#         {
-#           if ( l[x] != max_n_conc )
-#         }
-#         ## mask backup a concentration
-#         #mask[x, l[x]] <- 0
-#       }
-# #       } else if ( l[x] != max_n_conc )
-# #       {
-# #         mask[x, l[x]-1] <- 0
-# #       } else if ( l[x] == max_n_conc )
-# #       {
-# #         mask[x, ] <- 0
-#     }
-#   }
+
   mask <- apply(mask, 1, paste, collapse=" ")
   cytoqhts[["mask"]][, "mask"] <- mask
   return (cytoqhts)

@@ -62,4 +62,5 @@ Output
 - *curvep_n_corrections* (total number of correntions have been made)
 - *curvep_mask* (outlier points generated)
 - *curvep_r[0-9]+* (the responses after curvep treatment)
+- *input_mask* the mask used as input
 - more (AC50, C% ... under construction but provided in Curvep command line)
