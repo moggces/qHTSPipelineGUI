@@ -42,7 +42,7 @@ shinyUI(pageWithSidebar(
     checkboxInput("bylo", "favors corrections based on low conc-s", TRUE),
     #checkboxInput("xtinf", "outputs additional curve metrics", TRUE),
     checkboxInput("xplax", "allow extrapolation beyond test conc. boundaries", FALSE),
-    checkboxInput("cytomask", "use cytotoxicity data to generate mask", FALSE),
+    
     
     tags$br(),
     
@@ -50,8 +50,10 @@ shinyUI(pageWithSidebar(
     tags$br(),
     
     h5('Spike detection'),
-    checkboxInput("ucyto", "use cytotoxicity data", FALSE),
-    checkboxInput("uloose", "use loose", FALSE),
+    #checkboxInput("ucyto", "use cytotoxicity data", FALSE),
+    #checkboxInput("uloose", "use loose", FALSE),
+    checkboxInput("cytomask", "use cytotoxicity data to generate mask", FALSE),
+    textInput('cytomaskthr', 'response threshold to generate mask: ', '30'),
     
     tags$br(),
     

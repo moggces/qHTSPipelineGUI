@@ -42,10 +42,11 @@ shinyServer(function(input, output) {
     isolate({
       cytomask <- input$cytomask
       cytoqhts <- NULL
+      cytomaskthr <- input$cytomaskthr
       
       qhts <- input_data_loader()
       if (cytomask) cytoqhts <- cyto_data_loader()
-      save_input_curvep(qhts, cytoqhts=cytoqhts, calculation_dir=calculation_dir)
+      save_input_curvep(qhts, cytoqhts=cytoqhts, cytomaskthr=cytomaskthr, calculation_dir=calculation_dir)
     })
     
   })
@@ -54,8 +55,9 @@ shinyServer(function(input, output) {
     if(input$run == 0) return(NULL)
     isolate({
       
-      qhts <- input_data_loader()
-      basename <- curvep_input_creator()
+      #qhts <- input_data_loader()
+      #basename <- curvep_input_creator()
+      qhts <- curvep_input_creator()
       
       mxdv <- input$mxdv
       thr <- input$thr
@@ -73,7 +75,7 @@ shinyServer(function(input, output) {
       paras <- list(rng=rng, thr=thr, mxdv=mxdv, cro=cro, ushape=ushape, bshift=bshift, 
                     cort_bshift=cort_bshift, bylo=bylo, lconc_pod=lconc_pod, cunit=cunit, xplax=xplax)
       
-      return(get_curvep_results(qhts, basename, paras, calculation_dir=calculation_dir))
+      return(get_curvep_results(qhts, paras, calculation_dir=calculation_dir))
       
     })
   })
@@ -92,7 +94,7 @@ shinyServer(function(input, output) {
         #logm <- input$logM
         qhts <- curvep_output_generator()
         #result <- save_output_data(qhts, logm=logm)
-        result <- cbind(qhts$id, qhts$hills, qhts$concs, qhts$resps, qhts$curvep_resps)
+        result <- cbind(qhts$id_hill, qhts$concs, qhts$resps, qhts$curvep_resps)
         write.table(result, file, row.names = FALSE, col.names = TRUE, sep="\t", quote=FALSE, append=FALSE)
       })
     }

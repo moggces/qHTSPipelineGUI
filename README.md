@@ -47,8 +47,11 @@ The capital letters are the parameters used in Curvep command line.
   - min.#flat points to detect baseline-shift (BSHIFT, default=3): the minimum number of points needed on the flat portion of the curve to call it a baseline shift
   - baseline shift correction mode (BLFX, default=FALSE): if TRUE, the whole curve will vertically move so the lower asymptote reaches the baseline instead only the lower asymptote (FALSE) 
   - favors corrections based on low conc-s (BYHI, default=TRUE): when corrections are needed, the corrections with more points at the lower test concentrations are retained
-  - allow extrapolation beyond test conc. boundaries (XPLAX, default=FALSE): particular for the calculation of POD/AC50 in the case of the curve where only the upper asymptote is available (e.g., when the potency exceeds the tested concentration range)  
-  - use cytotoxicity data to generate mask (default=FALSE): cytotoxicity curvep data (when available) are used to create mask for the non-monotonic curves (caused by cytotoxicity by assumption) in the activation-type assays.  
+  - allow extrapolation beyond test conc. boundaries (XPLAX, default=FALSE): particular for the calculation of POD/AC50 in the case of the curve where only the upper asymptote is available (e.g., when the potency exceeds the tested concentration range)
+  
+- additional curation parameters
+  - use cytotoxicity data to generate mask (default=FALSE): cytotoxicity curvep data (when available) are used to create mask for the non-monotonic curves (caused by cytotoxicity by assumption) in the activation-type assays.
+  - response threshold to generate mask(default:30): response in cytotoxicity assay smaller than thr*-1 will become mask. If not setting, thr = 0; however, the mask point will shift one concentration to the higher one.
 
 Output
 ----------------

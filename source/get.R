@@ -30,8 +30,10 @@ run_curvep <- function (basename, paras, calculation_dir)
 
 }
 
-get_curvep_results <- function (qhts, basename, paras, calculation_dir) 
+get_curvep_results <- function (qhts,  paras, calculation_dir) 
 { 
+  basename <- qhts$basename
+  
   err <- run_curvep(basename, paras, calculation_dir)
   if (err !=  "Done.") stop (err)
   lconc_pod <- paras$lconc_pod
@@ -69,6 +71,7 @@ get_curvep_results <- function (qhts, basename, paras, calculation_dir)
   hill$curvep_remark <- curvep_result$Remarks
   hill$curvep_n_corrections <- curvep_result$X.Corrections
   hill$curvep_mask <- curvep_result$mask
+  hill[,"input_mask"] <- qhts$mask
   
   qhts[['hills']] <- hill
   qhts[['id_hill']] <- cbind(identity, hill)
@@ -115,34 +118,68 @@ get_curvep_results <- function (qhts, basename, paras, calculation_dir)
 # }
 
 
-########### get 50%
-get_cyto2mask <- function (cytoqhts)
+########### if only the last concentration, there won't be any mask
+get_cyto2mask <- function (cytoqhts, thr)
 {
   curvep_resps <- cytoqhts$curvep_resps
   if (is.null(curvep_resps)) stop("no curvep resps")
-  mask <- curvep_resps < -50 ##
-  max_n_conc <- ncol(cytoqhts[['concs']])
-  max.n <- vector()
   
-  mask <- apply(mask, 2, as.numeric)
+  if (is.na(thr))
+  {
+    mask <- curvep_resps < 0 
+  } else
+  {
+    mask <- curvep_resps < thr*-1 ##
+  }
+  
+  #max_n_conc <- ncol(cytoqhts[['concs']])
+  #max.n <- vector()
+  
+  mask <- apply(mask, 2, as.numeric) # columnwise
+  
+  # find the lowest conc that is smaller than threshold
   l <- apply(mask, 1, function(x) { if ( sum(x == 1, na.rm=TRUE)  > 0 ) {  min(which(x == 1)) } else { NA } })
   
-  for ( x in 1:nrow(mask) )
-  {
-    if ( ! is.na(l[x]) )
-    {
-      if (l[x] == 1 )
-      {
-        mask[x, ] <- 0
-      } else if ( l[x] != max_n_conc )
-      {
-        mask[x, l[x]-1] <- 0
-      } else if ( l[x] == max_n_conc )
-      {
-        mask[x, ] <- 0
-      }
-    }
-  }
-  mask.n <- apply(mask, 1, paste, collapse=" ")
-  return (mask.n)
+  mask <- do.call("rbind", lapply(1:nrow(mask), 
+        function (x)
+        {
+          if (! is.na(l[x]))
+          {
+            if (l[x] == 1) mask[x, ] <- 0
+            if (is.na(thr))
+            {
+              mask[x, l[x]] <- 0
+            }
+          }
+          return(mask[x,])
+        }))
+  
+#   for ( x in 1:nrow(mask) )
+#   {
+#     if ( ! is.na(l[x]) )
+#     {
+#       # if the lowest concentration is masked
+#       if (l[x] == 1 )
+#       {
+#         mask[x, ] <- 0
+#       } else
+#       {
+#         if (is.na(thr))
+#         {
+#           if ( l[x] != max_n_conc )
+#         }
+#         ## mask backup a concentration
+#         #mask[x, l[x]] <- 0
+#       }
+# #       } else if ( l[x] != max_n_conc )
+# #       {
+# #         mask[x, l[x]-1] <- 0
+# #       } else if ( l[x] == max_n_conc )
+# #       {
+# #         mask[x, ] <- 0
+#     }
+#   }
+  mask <- apply(mask, 1, paste, collapse=" ")
+  cytoqhts[["mask"]][, "mask"] <- mask
+  return (cytoqhts)
 }
