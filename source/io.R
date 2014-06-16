@@ -5,7 +5,11 @@ load_input_file <- function (file)
   df <- read.delim(file, quote = "", stringsAsFactors=FALSE)
   if (is.null(df$uniqueID)) stop("uniqueID column is required in the user input")
   if (is.null(df$pathway)) stop("pathway column is required in the user input")
-  df <- df[order(df$pathway, df$uniqueID),]   ### SORT!!! unique ID
+  
+  ### SORT!!! unique ID #####
+  df <- df[order(df$pathway, df$uniqueID),]
+  
+  
   if (! is.null(df$parent)) df$parent[is.na(df$parent)] <- ''
   
   col_names <- colnames(df)
@@ -19,7 +23,10 @@ load_input_file <- function (file)
   x_cols <- grep("conc[0-9]+", col_names, value = TRUE)
   y_cols <- grep("resp[0-9]+", col_names, value = TRUE)
   curvepr_cols <- grep("curvep_r[0-9]+", col_names, value = TRUE)
-  if (is.null(df$mask)) df[, "mask"] <- ''
+  
+  # mask column
+  if (is.null(df$mask) ) df[, "mask"] <- ''
+  if (sum(is.na(df$mask)) == nrow(df)) df[, "mask"] <- ''
   
   result[['concs']] <- df[, x_cols, drop=FALSE]
   result[['resps']] <- df[, y_cols, drop=FALSE]
@@ -28,14 +35,14 @@ load_input_file <- function (file)
   result[['map']] <- df[, map_cols, drop=FALSE]
   result[['filen']] <- file
   result[['mask']] <- df[, "mask", drop=FALSE]
-  result[['id']] <- df[, ! colnames(df) %in% c(x_cols, y_cols, hill_cols, map_cols, curvepr_cols), drop=FALSE]
+  result[['id']] <- df[, ! colnames(df) %in% c(x_cols, y_cols, hill_cols, map_cols, curvepr_cols, "mask"), drop=FALSE]
   
   return(result)
   
 }
 
 
-save_input_curvep <- function (qhts, cytoqhts, calculation_dir)
+save_input_curvep <- function (qhts, cytoqhts, cytomaskthr=NA, calculation_dir)
 {
   basename <- as.numeric(as.POSIXct(Sys.time()))
   basename <- as.character(basename)
@@ -44,48 +51,44 @@ save_input_curvep <- function (qhts, cytoqhts, calculation_dir)
   output <- paste(calculation_dir, "/",  basename, ".htsx", sep="")
   output_p <- paste(output, sep="")
   
+  if (cytomaskthr == '') cytomaskthr <- NA
+  cytomaskthr <- as.numeric(cytomaskthr)
+  
   identity <- qhts[['id']]
   resps <- qhts[['resps']]
   concs <- qhts[['concs']]
   hills <- qhts[['hills']]
-  mask <- qhts[['mask']]
+  maskdf <- qhts[['mask']]
   
-  hills$pathway <- identity$pathway
+  maskdf$uniqueID <- identity$uniqueID
   
-#   if (is.null(hills$Mask.Flags)) hills$Mask.Flags <- ''
-#   
-#   if (! is.null(cytoqhts)) 
-#   {
-#     mask <- get_cyto2mask(cytoqhts)
-#     p <- hills$pathway
-#     l <- split(hills, p)
-#     l <- lapply(l, transform, Mask.Flags = mask )
-#     hills <- unsplit(l, p)
-#   }
-# 
-#   mask <- hills$Mask.Flags
-
   if (! is.null(cytoqhts)) 
   {
-    mask <- get_cyto2mask(cytoqhts)
-    p <- hills$pathway
-    l <- split(hills, p)  ## for more than one pathway (high content screening)
-    l <- lapply(l, transform, mask = mask )
-    hills <- unsplit(l, p)
-    mask <- hills$mask
+    cytoqhts <- get_cyto2mask(cytoqhts, cytomaskthr)
+    cytomaskdf <- cytoqhts$mask
+    cytomaskdf[, "uniqueID"] <- cytoqhts[['id']]$uniqueID
+#     p <- maskdf$pathway
+#     l <- split(maskdf, p)  ## for more than one pathway (high content screening)
+#     l <- lapply(l, transform, mask = mask )
+#     maskdf <- unsplit(l, p)
+#     mask <- maskdf$mask
+    maskdf <- join(subset(maskdf, select=-mask), cytomaskdf, by="uniqueID")
   }
+  mask <- maskdf$mask
+  qhts[['mask']] <- subset(maskdf, select=mask)
 
   resps[is.na(resps)] <- -999
   concs[is.na(concs)] <- -999 
 
-  id <- seq(nrow(concs))
+  #id <- seq(nrow(concs))
+  id <- identity$uniqueID
   
   write.table(cbind(nrow(resps), ncol(resps)), output_p,  row.names = FALSE, col.names = FALSE, sep="\t", quote=FALSE, append=FALSE)
   suppressWarnings(write.table(cbind(id, mask, concs, resps), output_p,  row.names = FALSE, col.names = TRUE, sep="\t", quote=FALSE, append=TRUE))
   
   if ( ! file.exists(output_p) ) basename <- NULL
-    
-  return (basename)
+  qhts[['basename']] <- basename
+  return (qhts)
 }
 
 # save_output_data <- function(qhts, logm)
