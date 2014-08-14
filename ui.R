@@ -49,15 +49,21 @@ shinyUI(pageWithSidebar(
     h4('Additional curve curation (under construction)'),
     tags$br(),
     
-    h5('Spike detection'),
-    #checkboxInput("ucyto", "use cytotoxicity data", FALSE),
-    #checkboxInput("uloose", "use loose", FALSE),
+    h5('Spike treatment'),
+    tags$br(),
+    
+    h6('Create new mask'),
     checkboxInput("cytomask", "use cytotoxicity data to generate mask", FALSE),
     textInput('cytomaskthr', 'response threshold to generate mask: ', '30'),
+    tags$br(),
+    
+    h6('Use NCGC mask'),
+    checkboxInput("spiked", "detect spike", FALSE),
+    checkboxInput("cytoen", "enhance by cytotoxicity data", FALSE),
     
     tags$br(),
     
-    h5('Carryover detection'),
+    h5('Carryover treatment'),
     checkboxInput("uplate", "use plate sequence", FALSE),
     
     tags$br(),

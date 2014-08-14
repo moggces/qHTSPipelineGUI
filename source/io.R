@@ -1,12 +1,15 @@
 load_input_file <- function (file)
 {
   result <- list()
+  skipl <- length(grep("^#", readLines(file)))
   
-  df <- read.delim(file, quote = "", stringsAsFactors=FALSE)
+  df <- read.delim(file, quote = "",  skip=skipl, stringsAsFactors=FALSE)
   if (is.null(df$uniqueID)) stop("uniqueID column is required in the user input")
   if (is.null(df$pathway)) stop("pathway column is required in the user input")
   
-  ### SORT!!! unique ID #####
+  rownames(df) <- df$uniqueID
+  
+  ### SORT!!! unique ID ##### don't change the sequence order 
   df <- df[order(df$pathway, df$uniqueID),]
   
   
@@ -14,6 +17,7 @@ load_input_file <- function (file)
   
   col_names <- colnames(df)
   
+  # the paramters from either Curve Class 
   hill_cols <- c('Curve.Class','Curve.Class2', 'LogAC50', 'Hill.Coef', 'Inf.Activity', 'Zero.Activity', 'Mask.Flags', 'R2', 'p.value')
   hill_cols <- intersect(col_names, hill_cols)
   
@@ -36,13 +40,13 @@ load_input_file <- function (file)
   result[['filen']] <- file
   result[['mask']] <- df[, "mask", drop=FALSE]
   result[['id']] <- df[, ! colnames(df) %in% c(x_cols, y_cols, hill_cols, map_cols, curvepr_cols, "mask"), drop=FALSE]
-  
+  result[['id_hill']] <- cbind(result$id, result$hills)
   return(result)
   
 }
 
 
-save_input_curvep <- function (qhts, cytoqhts, cytomaskthr=NA, calculation_dir)
+save_input_curvep <- function (qhts, cytoqhts, cytomaskthr=NA, spiked=FALSE, calculation_dir)
 {
   basename <- as.numeric(as.POSIXct(Sys.time()))
   basename <- as.character(basename)
@@ -67,13 +71,15 @@ save_input_curvep <- function (qhts, cytoqhts, cytomaskthr=NA, calculation_dir)
     cytoqhts <- get_cyto2mask(cytoqhts, cytomaskthr)
     cytomaskdf <- cytoqhts$mask
     cytomaskdf[, "uniqueID"] <- cytoqhts[['id']]$uniqueID
-#     p <- maskdf$pathway
-#     l <- split(maskdf, p)  ## for more than one pathway (high content screening)
-#     l <- lapply(l, transform, mask = mask )
-#     maskdf <- unsplit(l, p)
-#     mask <- maskdf$mask
     maskdf <- join(subset(maskdf, select=-mask), cytomaskdf, by="uniqueID")
   }
+  
+  # for ease, Mask.Flags is used when spiked is used and mask column is all blank ''
+  if (spiked)
+  {
+    if ( sum(maskdf$mask == '') == nrow(maskdf)) maskdf[, 'mask'] <- hills$Mask.Flags
+  }
+
   mask <- maskdf$mask
   qhts[['mask']] <- subset(maskdf, select=mask)
 

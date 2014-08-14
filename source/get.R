@@ -43,81 +43,53 @@ get_curvep_results <- function (qhts,  paras, calculation_dir)
   
   
   skipl <- length(grep("^#", readLines(curvep_output))) + 1 # the number of row number of conc
-  hill <- qhts[['hills']]
-  identity <- qhts[['id']]
+  
+  #hill <- qhts[['hills']]
+  #identity <- qhts[['id']]
+  id_hill <- qhts[['id_hill']]
   concs <- qhts[['concs']]
    
-  curvep_result <- read.table(curvep_output, header = TRUE, sep = "\t", quote = "", comment.char = "", skip=skipl)
+  curvep_result <- read.table(curvep_output, header = TRUE, sep = "\t", quote = "", comment.char = "", skip=skipl, stringsAsFactors = FALSE)
+  curvep_paras <- read.table(curvep_output, header = FALSE, sep = "\n", quote = "", comment.char = "", nrow=skipl-2, stringsAsFactors = FALSE)
+  
   curvep_resps <- curvep_result[, grepl("Resp[0-9]+", colnames(curvep_result), perl=TRUE)]
   curvep_resps[curvep_resps == -999] <- NA
   colnames(curvep_resps) <- sub('Resp', 'curvep_r', colnames(curvep_resps))
   
-  hill$curvep_wauc <- curvep_result$wAUC
-  hill$curvep_pod <- curvep_result$POD  
-  hill$curvep_pod[hill$curvep_pod == -999] <- NA
+  
+  id_hill$curvep_wauc <- curvep_result$wAUC
+  id_hill$curvep_pod <- curvep_result$POD  
+  id_hill$curvep_pod[id_hill$curvep_pod == -999] <- NA
   #hill$curvep_pod = (hill$curvep_pod + 6)*-1 # to be compatible with log10(M)
   
   if (lconc_pod)
   {
-    ind <- which(is.na(hill$curvep_pod))
+    ind <- which(is.na(id_hill$curvep_pod))
     last_concs <- lapply(ind, function (x){
       num <- max(which(! is.na(concs[x, ])))
       last_conc <- concs[x, num]
       return(last_conc)
     })
-    hill$curvep_pod[ind] <- unlist(last_concs)
+    id_hill$curvep_pod[ind] <- unlist(last_concs)
   }
   
-  hill$curvep_remark <- curvep_result$Remarks
-  hill$curvep_n_corrections <- curvep_result$X.Corrections
-  hill$curvep_mask <- curvep_result$mask
-  hill[,"input_mask"] <- qhts$mask
+  id_hill$curvep_remark <- curvep_result$Remarks
+  id_hill$curvep_n_corrections <- curvep_result$X.Corrections
+  id_hill$curvep_mask <- curvep_result$mask
+  id_hill[,"input_mask"] <- qhts$mask
   
-  qhts[['hills']] <- hill
-  qhts[['id_hill']] <- cbind(identity, hill)
+  #qhts[['hills']] <- hill
+  #qhts[['id_hill']] <- cbind(identity, hill)
+  qhts[['id_hill']] <- id_hill
   qhts[['curvep_resps']] <- curvep_resps
-  qhts[['paras']] <- paras
+  qhts[['paras_lines']] <- curvep_paras # lines not computable
+  qhts[['paras']] <- paras 
   qhts[['isinhibitor']] <- isinhibitor
   
   return(qhts)
   
   
 }
-
-
-### get the valid responses after curvep. the next concentration of the valid responses
-# get_cyto2mask <- function (cytoqhts)
-# {
-#   curvep_resps <- cytoqhts$curvep_resps
-#   if (is.null(curvep_resps)) stop("no curvep resps")
-#   mask <- curvep_resps < 0
-#   max_n_conc <- ncol(cytoqhts[['concs']])
-#   max.n <- vector()
-#   
-#   mask <- apply(mask, 2, as.numeric)
-#   l <- apply(mask, 1, function(x) { if ( sum(x == 1, na.rm=TRUE)  > 0 ) {  min(which(x == 1)) } else { NA } })
-#   
-#   for ( x in 1:nrow(mask) )
-#   {
-#     if ( ! is.na(l[x]) )
-#     {
-#       if (l[x] == 1 )
-#       {
-#         mask[x, ] <- 0
-#       } else if ( l[x] != max_n_conc )
-#       {
-#         mask[x, l[x]] <- 0
-#       } else if ( l[x] == max_n_conc )
-#       {
-#         mask[x, ] <- 0
-#       }
-#     }
-#   }
-#   mask.n <- apply(mask, 1, paste, collapse=" ")
-#   return (mask.n)
-# }
-
-
 
 get_cyto2mask <- function (cytoqhts, thr)
 {
@@ -158,4 +130,114 @@ get_cyto2mask <- function (cytoqhts, thr)
   mask <- apply(mask, 1, paste, collapse=" ")
   cytoqhts[["mask"]][, "mask"] <- mask
   return (cytoqhts)
+}
+
+# to include in the front of the output
+get_additional_commentl <- function(add_paras)
+{
+  result <- list()
+  if ('cytomaskthr' %in% names(add_paras) ) 
+  {
+    result[['cytomaskthr']] <- paste('# cytotoxicity response higher than ', 
+                                     add_paras[['cytomaskthr']], '% to mask the response.', sep="")
+  }
+  if ('spiked' %in% names(add_paras) )
+  {
+    result[['spike_comb']] <- paste('# spike detection (old).', sep="")
+  }
+  if ('cytoen' %in% names(add_paras) )
+  {
+    result[['spike_comb']] <- paste(result[['spike_comb']], '+ cytotoxicity info', sep="")
+  }
+  return(result)
+
+}
+
+get_clean_spike <- function (qhts, cytoqhts, lconc_pod)
+{
+  # collect all the information
+  isinhibitor <- qhts$isinhibitor
+  thr <- abs(as.numeric(qhts$paras[['thr']]))
+ 
+  # get the responses and mask
+  c_respsdf <- qhts$curvep_resps
+  respsdf <- qhts$resps
+  mask <- qhts$id_hill[, "curvep_mask", drop=FALSE]
+  
+  # curvep_resp and origianl resp
+  if (isinhibitor)
+  {
+    c_respsdf <- c_respsdf*-1
+    respsdf <- respsdf*-1
+  }
+  
+  # cyto curvep resp if available
+  if (! is.null(cytoqhts)) cyto_c_respsdf <- cytoqhts$curvep_resps
+  
+  # the conc with highest resp. if all 0 -> NA , if multiple conc. with same response, the lowest will be reported
+  hp <- apply(c_respsdf, 1, function(x) { 
+    x <- x[! is.na(x)]
+    which(x == max(x) & max(x) != 0  )[1] 
+    } )
+
+  spike_ids <- lapply(1:length(hp), function (x) {
+      
+      spike_id <- vector()
+      
+      # get the curvep_resps and resps per row
+      c_resps <- c_respsdf[x, ! is.na(c_respsdf[x,])]
+      resps <- respsdf[x, ! is.na(respsdf[x,])]
+      n_concs <- length(c_resps)
+      
+      # get the cytodata
+      cyto_c_resps <- NULL
+      if (! is.null(cytoqhts)) cyto_c_resps <- cyto_c_respsdf[x, 1:n_concs] # could be NA
+      
+      # get the ind of non-outliers
+      mask_log <- ! as.logical(as.numeric(strsplit(mask[x,], " ")[[1]]))
+      
+      # high resp in the middle of the curve
+      if (! is.na(hp[x]) &  n_concs - hp[x] > 2 & hp[x] != 1 )
+      {
+        ind_b <- 1:(hp[x]-1)
+        ind_f <- (hp[x]+1):n_concs
+        
+        ind_b_m <- tail(which(mask_log[ind_b]),1)
+        if (length(ind_b_m) == 0) ind_b_m <- hp[x]-1
+        ind_f_m <- head(which(mask_log[ind_f]),1)
+        if (length(ind_f_m) ==0) ind_f_m <- 1 
+        
+        # resp before the highest point or response right after the highest point
+        hp_max_b <- resps[ind_b_m]
+        hp_max_f <- resps[hp[x]+ind_f_m]
+        hp_max <- c_resps[hp[x]]
+        
+        cyto_min_f <- 0
+        if ( ! is.null(cyto_c_resps)) cyto_min_f <- min(cyto_c_resps[ind_f], na.rm=TRUE)
+        
+        #if (hp_max > 150 & hp_max_b < thr & hp_max_f < thr & cyto_min_f == 0) spike_id <- names(hp)[x]
+        if ( hp_max_b < thr & hp_max_f < thr & cyto_min_f == 0) spike_id <- names(hp)[x]
+        
+      }
+      return(spike_id)
+    }         
+  )
+  
+  # clean the curves
+  spike_ids <- unlist(spike_ids)
+  if (length(spike_ids) > 0) qhts  <- clean_resps(qhts, spike_ids, lconc_pod)
+  
+  return(qhts)
+  
+}
+
+clean_resps <- function (qhts, ids, lconc_pod)
+{
+  ind <- rownames(qhts$id_hill) %in% ids
+  qhts[['id_hill']][ind, 'curvep_remark'] <- paste(qhts$id_hill[ind, 'curvep_remark'], 'spike', sep="|")
+  qhts[['id_hill']][ind, 'curvep_wauc'] <- 0
+  qhts[['id_hill']][ind, 'curvep_pod'] <- NA
+  if ( lconc_pod) qhts[['id_hill']][ind, 'curvep_pod'] <- apply(qhts$concs[ind, ],1, function (y) { y <- y[!is.na(y)]; tail(y, 1)}) 
+  qhts[['curvep_resps']][ind, ] <- 0
+  return(qhts)
 }

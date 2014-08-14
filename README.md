@@ -55,7 +55,7 @@ The capital letters are the parameters used in Curvep command line.
 
 Output
 ----------------
-
+parameters are reported in the top N lines (starting with #)
 - *curvep_wauc* (weight area under the curve)
 - *curvep_pod* (point-of-depature)
 - *curvep_remark* (curve indication)
