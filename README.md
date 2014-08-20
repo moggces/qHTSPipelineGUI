@@ -50,8 +50,11 @@ The capital letters are the parameters used in Curvep command line.
   - allow extrapolation beyond test conc. boundaries (XPLAX, default=FALSE): particular for the calculation of POD/AC50 in the case of the curve where only the upper asymptote is available (e.g., when the potency exceeds the tested concentration range)
   
 - additional curation parameters
-  - use cytotoxicity data to generate mask (default=FALSE): cytotoxicity curvep data (when available) are used to create mask for the non-monotonic curves (caused by cytotoxicity by assumption) in the activation-type assays.
-  - response threshold to generate mask(default:30): response in cytotoxicity assay smaller than thr*-1 will become mask. If not setting, thr = 0; however, the mask point will shift one concentration to the higher one.
+  - use cytotoxicity data to generate mask (default=FALSE): cytotoxicity curvep data (when available, *curvep_r[0-9]+* columns) are used to create mask for the non-monotonic curves (caused by cytotoxicity by assumption) in the activation-type assays.
+  - response threshold to generate mask(default:30): response in cytotoxicity assay smaller than thr*-1 will become mask. If not setting (don't put number), thr = 0; however, the mask point will shift one concentration to the higher one.
+  - use NCGC mask as starting point (*Mask.Flags* column will be used if available) to detect spike
+  - the cytotoxicity data (after curvep) can be used to help detect the spike (*curvep_r[0-9]+* columns)
+  - use plate sequence to help detect carryover (*Library_seq* column will be used)
 
 Output
 ----------------

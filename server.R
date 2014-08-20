@@ -72,8 +72,10 @@ shinyServer(function(input, output) {
       cytomaskthr <- input$cytomaskthr
       spiked <- input$spiked
       cytoen <- input$cytoen
-      if (cytomask) add_paras[['cytomaskthr']] <- cytomaskthr
+      uplate <- input$uplate
       
+      if (cytomask) add_paras[['cytomaskthr']] <- cytomaskthr
+      if (uplate) add_paras[['uplate']] <- uplate
       if (spiked) 
       {
         add_paras[['spiked']] <- spiked
@@ -111,10 +113,12 @@ shinyServer(function(input, output) {
       spiked <- input$spiked
       cytoen <- input$cytoen
       lconc_pod <- input$lconc_pod
+      uplate <- input$uplate
       cytoqhts <- NULL
       qhts <- curvep_output_generator()
       if (cytoen & spiked) cytoqhts <- cyto_data_loader()
       if (spiked) qhts <- get_clean_spike(qhts, cytoqhts, lconc_pod)
+      if (uplate) qhts <- get_clean_potent(qhts, lconc_pod)
       return (qhts)
       
     })

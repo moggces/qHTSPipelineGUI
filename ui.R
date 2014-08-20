@@ -46,7 +46,7 @@ shinyUI(pageWithSidebar(
     
     tags$br(),
     
-    h4('Additional curve curation (under construction)'),
+    h4('Additional curve curation'),
     tags$br(),
     
     h5('Spike treatment'),

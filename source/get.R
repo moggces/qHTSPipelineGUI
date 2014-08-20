@@ -90,18 +90,20 @@ get_curvep_results <- function (qhts,  paras, calculation_dir)
   
   
 }
-
+# to do. average of value < 0 thr  ; value < thr  mask
 get_cyto2mask <- function (cytoqhts, thr)
 {
   curvep_resps <- cytoqhts$curvep_resps
   if (is.null(curvep_resps)) stop("no curvep resps")
   
+  #  if resp is NA, it will become F, F, F, T, NA 
   if (is.na(thr))
   {
     mask <- curvep_resps < 0 
+#    apply(curvep_resps, 1, function (x) { })
   } else
   {
-    mask <- curvep_resps < thr*-1 ##
+    mask <- curvep_resps < thr*-1 ## 
   }
   
   #max_n_conc <- ncol(cytoqhts[['concs']])
@@ -143,11 +145,15 @@ get_additional_commentl <- function(add_paras)
   }
   if ('spiked' %in% names(add_paras) )
   {
-    result[['spike_comb']] <- paste('# spike detection (old).', sep="")
+    result[['spike_comb']] <- paste('# spike detection (use NCGC outliers).', sep="")
   }
   if ('cytoen' %in% names(add_paras) )
   {
     result[['spike_comb']] <- paste(result[['spike_comb']], '+ cytotoxicity info', sep="")
+  }
+  if ('uplate' %in% names(add_paras) )
+  {
+    result[['uplate']] <- paste('# carryover treatment (use plate sequence).', sep="")
   }
   return(result)
 
@@ -225,16 +231,58 @@ get_clean_spike <- function (qhts, cytoqhts, lconc_pod)
   
   # clean the curves
   spike_ids <- unlist(spike_ids)
-  if (length(spike_ids) > 0) qhts  <- clean_resps(qhts, spike_ids, lconc_pod)
+  if (length(spike_ids) > 0) qhts  <- clean_resps(qhts, spike_ids, lconc_pod, 'spike')
   
   return(qhts)
   
 }
 
-clean_resps <- function (qhts, ids, lconc_pod)
+get_clean_potent <- function (qhts, lconc_pod)
+{
+  id_hill <- cbind(qhts$id_hill, qhts$map)
+  pot_ids <- which(grepl('INVERSE|POTENT|CARRY_OVER', id_hill$curvep_remark) & id_hill$curvep_wauc != 0)
+  
+  cols <- c('Library_seq', 'Row', 'Column')
+  pot <- id_hill[pot_ids, cols]
+  pot <- pot[order(pot$Library_seq),] # from the earlies plate
+  
+  carry_ids <- vector()
+  for (i in 1:nrow(pot))
+  {
+    l <- pot[i, ] # get the line
+    seq <- l$Library_seq
+    row <- l$Row
+    col <- l$Column
+    name <- rownames(l)
+    
+    if (seq != 1 )
+    {
+      #pre_id <- id_hill$Library_seq == seq-1 & id_hill$Row == row & id_hill$Column == col
+      
+      init_seq <- seq
+      repeat {
+        init_seq <- init_seq - 1
+        pre_id <- id_hill$Library_seq ==init_seq  & id_hill$Row == row & id_hill$Column == col
+        if (sum(pre_id) != 0 ) break
+      } 
+      
+      pre <- id_hill[pre_id, ] # get the line of previous plate
+      pre_act <- pre$curvep_wauc
+      pre_name <- rownames(pre)
+      pre_mark <- pre$curvep_remark
+      first_resp <- qhts$curvep_resps[pre_id, 1]
+      if ( (abs(pre_act) > 50 & sum(carry_ids %in% pre_name) == 0) | ( sum(carry_ids %in% pre_name) != 0 & abs(first_resp) > 80 & grepl('INVERSE', pre_mark) ))  
+      {carry_ids <- rbind(carry_ids, name) }
+    }
+  }
+  if (length(carry_ids) > 0) qhts  <- clean_resps(qhts, carry_ids, lconc_pod, 'carryover')
+  return(qhts)
+}
+
+clean_resps <- function (qhts, ids, lconc_pod, comment)
 {
   ind <- rownames(qhts$id_hill) %in% ids
-  qhts[['id_hill']][ind, 'curvep_remark'] <- paste(qhts$id_hill[ind, 'curvep_remark'], 'spike', sep="|")
+  qhts[['id_hill']][ind, 'curvep_remark'] <- paste(qhts$id_hill[ind, 'curvep_remark'], comment, sep="|")
   qhts[['id_hill']][ind, 'curvep_wauc'] <- 0
   qhts[['id_hill']][ind, 'curvep_pod'] <- NA
   if ( lconc_pod) qhts[['id_hill']][ind, 'curvep_pod'] <- apply(qhts$concs[ind, ],1, function (y) { y <- y[!is.na(y)]; tail(y, 1)}) 
