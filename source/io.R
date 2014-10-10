@@ -7,7 +7,8 @@ load_input_file <- function (file)
   if (is.null(df$uniqueID)) stop("uniqueID column is required in the user input")
   if (is.null(df$pathway)) stop("pathway column is required in the user input")
   
-  rownames(df) <- df$uniqueID
+  #rownames(df) <- df$uniqueID
+  rownames(df) <- paste('u', 1:nrow(df))
   
   ### SORT!!! unique ID ##### don't change the sequence order 
   df <- df[order(df$pathway, df$uniqueID),]

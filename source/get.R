@@ -94,12 +94,13 @@ get_curvep_results <- function (qhts,  paras, calculation_dir)
 get_cyto2mask <- function (cytoqhts, thr)
 {
   curvep_resps <- cytoqhts$curvep_resps
+  resps <- cytoqhts$resps
   if (is.null(curvep_resps)) stop("no curvep resps")
   
   #  if resp is NA, it will become F, F, F, T, NA 
   if (is.na(thr))
   {
-    mask <- curvep_resps < 0 
+    mask <- curvep_resps < 0  | (resps < 0 & curvep_resps == 0)
 #    apply(curvep_resps, 1, function (x) { })
   } else
   {
@@ -120,10 +121,10 @@ get_cyto2mask <- function (cytoqhts, thr)
           if (! is.na(l[x]))
           {
             if (l[x] == 1) mask[x, ] <- 0
-            if (is.na(thr))
-            {
-              mask[x, l[x]] <- 0
-            }
+            #if (is.na(thr))
+            #{
+            #  mask[x, l[x]] <- 0
+            #}
           }
           return(mask[x,])
         }))
@@ -243,36 +244,40 @@ get_clean_potent <- function (qhts, lconc_pod)
   pot_ids <- which(grepl('INVERSE|POTENT|CARRY_OVER', id_hill$curvep_remark) & id_hill$curvep_wauc != 0)
   
   cols <- c('Library_seq', 'Row', 'Column')
-  pot <- id_hill[pot_ids, cols]
-  pot <- pot[order(pot$Library_seq),] # from the earlies plate
-  
   carry_ids <- vector()
-  for (i in 1:nrow(pot))
+  pot <- id_hill[pot_ids, cols]
+  
+  if (sum(pot_ids) > 0)
   {
-    l <- pot[i, ] # get the line
-    seq <- l$Library_seq
-    row <- l$Row
-    col <- l$Column
-    name <- rownames(l)
-    
-    if (seq != 1 )
+    pot <- pot[order(pot$Library_seq),] # from the earlies plate
+  
+    for (i in 1:nrow(pot))
     {
-      #pre_id <- id_hill$Library_seq == seq-1 & id_hill$Row == row & id_hill$Column == col
+      l <- pot[i, ] # get the line
+      seq <- l$Library_seq
+      row <- l$Row
+      col <- l$Column
+      name <- rownames(l)
       
-      init_seq <- seq
-      repeat {
-        init_seq <- init_seq - 1
-        pre_id <- id_hill$Library_seq ==init_seq  & id_hill$Row == row & id_hill$Column == col
-        if (sum(pre_id) != 0 ) break
-      } 
-      
-      pre <- id_hill[pre_id, ] # get the line of previous plate
-      pre_act <- pre$curvep_wauc
-      pre_name <- rownames(pre)
-      pre_mark <- pre$curvep_remark
-      first_resp <- qhts$curvep_resps[pre_id, 1]
-      if ( (abs(pre_act) > 50 & sum(carry_ids %in% pre_name) == 0) | ( sum(carry_ids %in% pre_name) != 0 & abs(first_resp) > 80 & grepl('INVERSE', pre_mark) ))  
-      {carry_ids <- rbind(carry_ids, name) }
+      if (seq != 1 )
+      {
+        #pre_id <- id_hill$Library_seq == seq-1 & id_hill$Row == row & id_hill$Column == col
+        
+        init_seq <- seq
+        repeat {
+          init_seq <- init_seq - 1
+          pre_id <- id_hill$Library_seq ==init_seq  & id_hill$Row == row & id_hill$Column == col
+          if (sum(pre_id) != 0 ) break
+        } 
+        
+        pre <- id_hill[pre_id, ] # get the line of previous plate
+        pre_act <- pre$curvep_wauc
+        pre_name <- rownames(pre)
+        pre_mark <- pre$curvep_remark
+        first_resp <- qhts$curvep_resps[pre_id, 1]
+        if ( (abs(pre_act) > 50 & sum(carry_ids %in% pre_name) == 0) | ( sum(carry_ids %in% pre_name) != 0 & abs(first_resp) > 80 & grepl('INVERSE', pre_mark) ))  
+        {carry_ids <- rbind(carry_ids, name) }
+      }
     }
   }
   if (length(carry_ids) > 0) qhts  <- clean_resps(qhts, carry_ids, lconc_pod, 'carryover')
