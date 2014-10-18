@@ -3,8 +3,8 @@ library(plyr)
 library(reshape2)
 library(ggplot2)
 
-source("./source/io.R",  local=TRUE)
-source("./source/get.R",  local=TRUE)
+source("./source/io.R")
+source("./source/get.R")
 calculation_dir <- './calculation'
 options(shiny.maxRequestSize=30*1024^2)
 #known bugs: if the cytomask generation. if NA , it will have NA in the mask
@@ -41,6 +41,7 @@ shinyServer(function(input, output) {
     if(input$run == 0) return(NULL)
     
     isolate({
+      thr <- input$thr
       cytomask <- input$cytomask
       cytoqhts <- NULL
       cytomaskthr <- input$cytomaskthr
@@ -51,7 +52,7 @@ shinyServer(function(input, output) {
       qhts <- input_data_loader()
       if (cytomask) cytoqhts <- cyto_data_loader()
       
-      save_input_curvep(qhts, cytoqhts=cytoqhts, cytomaskthr=cytomaskthr, spiked=spiked, calculation_dir=calculation_dir)
+      save_input_curvep(qhts, cytoqhts=cytoqhts, cytomaskthr=cytomaskthr, thr=thr, spiked=spiked, calculation_dir=calculation_dir)
     })
     
   })
@@ -155,7 +156,7 @@ shinyServer(function(input, output) {
     #bb <- curvep_input_creator()
     #strsplit(bb, ".", fixed=TRUE)[[1]][1]
     #bb
-    result <- post_curvep_curation()
+    result <- post_curvep_curation()  #post_curvep_curation
     return(cbind(result$id_hill, result$resps, result$curvep_resps))
   })
   

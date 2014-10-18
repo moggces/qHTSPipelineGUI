@@ -91,7 +91,7 @@ get_curvep_results <- function (qhts,  paras, calculation_dir)
   
 }
 # to do. average of value < 0 thr  ; value < thr  mask
-get_cyto2mask <- function (cytoqhts, thr)
+get_cyto2mask <- function (cytoqhts, thr, base_thr)
 {
   curvep_resps <- cytoqhts$curvep_resps
   resps <- cytoqhts$resps
@@ -100,7 +100,7 @@ get_cyto2mask <- function (cytoqhts, thr)
   #  if resp is NA, it will become F, F, F, T, NA 
   if (is.na(thr))
   {
-    mask <- curvep_resps < 0  | (resps < 0 & curvep_resps == 0)
+    mask <- curvep_resps < 0 
 #    apply(curvep_resps, 1, function (x) { })
   } else
   {
@@ -115,12 +115,28 @@ get_cyto2mask <- function (cytoqhts, thr)
   # find the lowest conc that is smaller than threshold
   l <- apply(mask, 1, function(x) { if ( sum(x == 1, na.rm=TRUE)  > 0 ) {  min(which(x == 1)) } else { NA } })
   
+
   mask <- do.call("rbind", lapply(1:nrow(mask), 
         function (x)
         {
           if (! is.na(l[x]))
           {
-            if (l[x] == 1) mask[x, ] <- 0
+            # the first conc. safe to unmask everything
+            if (l[x] == 1) 
+            { 
+              mask[x, ] <- 0
+            } else if (is.na(thr))
+            {
+              # the first curvep_resp higher than thr
+              d <- l[x]
+              repeat{
+                d <- d - 1
+                if (d == 1 | abs(resps[x, d]) > base_thr ) break
+                
+              }
+              o <- d + 1
+              if (l[x] - o < 4 ) mask[x, o:l[x]] <- 1
+            }
             #if (is.na(thr))
             #{
             #  mask[x, l[x]] <- 0
@@ -128,7 +144,7 @@ get_cyto2mask <- function (cytoqhts, thr)
           }
           return(mask[x,])
         }))
-  
+
 
   mask <- apply(mask, 1, paste, collapse=" ")
   cytoqhts[["mask"]][, "mask"] <- mask
@@ -244,6 +260,11 @@ get_clean_potent <- function (qhts, lconc_pod)
   pot_ids <- which(grepl('INVERSE|POTENT|CARRY_OVER', id_hill$curvep_remark) & id_hill$curvep_wauc != 0)
   
   cols <- c('Library_seq', 'Row', 'Column')
+  if (sum(colnames(id_hill) %in% cols) != length(cols))
+  {
+    warning("no required columns") ## not reporting
+    return(qhts)
+  }
   carry_ids <- vector()
   pot <- id_hill[pot_ids, cols]
   

@@ -47,7 +47,7 @@ load_input_file <- function (file)
 }
 
 
-save_input_curvep <- function (qhts, cytoqhts, cytomaskthr=NA, spiked=FALSE, calculation_dir)
+save_input_curvep <- function (qhts, cytoqhts, cytomaskthr=NA, thr, spiked=FALSE, calculation_dir)
 {
   basename <- as.numeric(as.POSIXct(Sys.time()))
   basename <- as.character(basename)
@@ -58,6 +58,7 @@ save_input_curvep <- function (qhts, cytoqhts, cytomaskthr=NA, spiked=FALSE, cal
   
   if (cytomaskthr == '') cytomaskthr <- NA
   cytomaskthr <- as.numeric(cytomaskthr)
+  thr <- as.numeric(thr)
   
   identity <- qhts[['id']]
   resps <- qhts[['resps']]
@@ -69,7 +70,7 @@ save_input_curvep <- function (qhts, cytoqhts, cytomaskthr=NA, spiked=FALSE, cal
   
   if (! is.null(cytoqhts)) 
   {
-    cytoqhts <- get_cyto2mask(cytoqhts, cytomaskthr)
+    cytoqhts <- get_cyto2mask(cytoqhts, cytomaskthr, thr)
     cytomaskdf <- cytoqhts$mask
     cytomaskdf[, "uniqueID"] <- cytoqhts[['id']]$uniqueID
     maskdf <- join(subset(maskdf, select=-mask), cytomaskdf, by="uniqueID")
