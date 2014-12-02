@@ -100,11 +100,13 @@ get_cyto2mask <- function (cytoqhts, thr, base_thr)
   #  if resp is NA, it will become F, F, F, T, NA 
   if (is.na(thr))
   {
-    mask <- curvep_resps < 0 
+    #mask <- curvep_resps < 0
+    mask <- abs(curvep_resps) > 0
 #    apply(curvep_resps, 1, function (x) { })
   } else
   {
-    mask <- curvep_resps < thr*-1 ## 
+    #mask <- curvep_resps < thr*-1 ## 
+    mask <- abs(curvep_resps) > thr
   }
   
   #max_n_conc <- ncol(cytoqhts[['concs']])
@@ -295,8 +297,9 @@ get_clean_potent <- function (qhts, lconc_pod)
         pre_act <- pre$curvep_wauc
         pre_name <- rownames(pre)
         pre_mark <- pre$curvep_remark
-        first_resp <- qhts$curvep_resps[pre_id, 1]
-        if ( (abs(pre_act) > 50 & sum(carry_ids %in% pre_name) == 0) | ( sum(carry_ids %in% pre_name) != 0 & abs(first_resp) > 80 & grepl('INVERSE', pre_mark) ))  
+        first_resp <- qhts$resps[pre_id, 1]
+        # 50 maybe replaced by the number later with curves that cause carryover
+        if ( (abs(pre_act) > 50 & sum(carry_ids %in% pre_name) == 0) | ( sum(carry_ids %in% pre_name) != 0 & abs(first_resp) > 80 & grepl('INVERSE|U_SHAPE', pre_mark) ))  
         {carry_ids <- rbind(carry_ids, name) }
       }
     }

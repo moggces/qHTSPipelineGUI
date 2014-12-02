@@ -21,6 +21,7 @@ Tab-delimited files with four sets of required columns:
 - response columns: *resp[0-9]+* columns (e.g., resp0, resp1, resp2, ... etc.)  
   - unit: -100% - 0% - 100%; 0% is the baseline
 - pathway column: *pathway* column
+(can load the RData data from the results of new_qhtsdata2rdata.r)
 
 
 Additional Input
