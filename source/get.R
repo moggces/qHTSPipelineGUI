@@ -44,24 +44,37 @@ get_curvep_results <- function (qhts,  paras, calculation_dir)
   
   skipl <- length(grep("^#", readLines(curvep_output))) + 1 # the number of row number of conc
   
-  #hill <- qhts[['hills']]
-  #identity <- qhts[['id']]
+
   id_hill <- qhts[['id_hill']]
   concs <- qhts[['concs']]
    
   curvep_result <- read.table(curvep_output, header = TRUE, sep = "\t", quote = "", comment.char = "", skip=skipl, stringsAsFactors = FALSE)
   curvep_paras <- read.table(curvep_output, header = FALSE, sep = "\n", quote = "", comment.char = "", nrow=skipl-2, stringsAsFactors = FALSE)
   
+  #curvep_resps
   curvep_resps <- curvep_result[, grepl("Resp[0-9]+", colnames(curvep_result), perl=TRUE)]
   curvep_resps[curvep_resps == -999] <- NA
   colnames(curvep_resps) <- sub('Resp', 'curvep_r', colnames(curvep_resps))
   
+  #c_resps
+  c_resps <- curvep_result[, grepl("C\\.[0-9]+\\.", colnames(curvep_result), perl=TRUE)]
+  c_resps[c_resps == -999] <- NA
+  colnames(c_resps) <- gsub('\\.', '', colnames(c_resps))
   
   id_hill$curvep_wauc <- curvep_result$wAUC
   id_hill$curvep_pod <- curvep_result$POD  
   id_hill$curvep_pod[id_hill$curvep_pod == -999] <- NA
-  #hill$curvep_pod = (hill$curvep_pod + 6)*-1 # to be compatible with log10(M)
+  id_hill$curvep_thr <- as.numeric(paras$thr)
   
+  # similar to emax
+  id_hill$curvep_cmax <- unlist(lapply(1:nrow(curvep_resps), function (x) { v <- curvep_resps[x, ]; v <- v[!is.na(v)]; return(max(abs(v))) } ))
+  if (isinhibitor) {
+    id_hill$curvep_thr <- as.numeric(paras$thr)*-1
+    id_hill$curvep_cmax <- id_hill$curvep_cmax*-1
+  }
+
+  
+  # make POD NA as the last tested concentration
   if (lconc_pod)
   {
     ind <- which(is.na(id_hill$curvep_pod))
@@ -71,17 +84,28 @@ get_curvep_results <- function (qhts,  paras, calculation_dir)
       return(last_conc)
     })
     id_hill$curvep_pod[ind] <- unlist(last_concs)
+    
+    c_resps <- lapply(1:nrow(c_resps), function (x) { 
+      num <- max(which(! is.na(concs[x, ])))
+      last_conc <- concs[x, num]
+      v <- c_resps[x, ]
+      v[is.na(v)] <- last_conc
+      return(v)
+      })
+    c_resps <- do.call("rbind", c_resps)
   }
   
   id_hill$curvep_remark <- curvep_result$Remarks
   id_hill$curvep_n_corrections <- curvep_result$X.Corrections
   id_hill$curvep_mask <- curvep_result$mask
   id_hill[,"input_mask"] <- qhts$mask
+  # add C50
+  #print(c_resps$C50)
+  id_hill[, "curvep_c50"] <- c_resps$C50
   
-  #qhts[['hills']] <- hill
-  #qhts[['id_hill']] <- cbind(identity, hill)
   qhts[['id_hill']] <- id_hill
   qhts[['curvep_resps']] <- curvep_resps
+  qhts[['c_resps']] <- c_resps
   qhts[['paras_lines']] <- curvep_paras # lines not computable
   qhts[['paras']] <- paras 
   qhts[['isinhibitor']] <- isinhibitor
@@ -91,6 +115,8 @@ get_curvep_results <- function (qhts,  paras, calculation_dir)
   
 }
 # to do. average of value < 0 thr  ; value < thr  mask
+# thr=NA, more points will be masked by using the base_thr
+# thr=0 or others, only the points higher than thr will be masked
 get_cyto2mask <- function (cytoqhts, thr, base_thr)
 {
   curvep_resps <- cytoqhts$curvep_resps
@@ -127,7 +153,7 @@ get_cyto2mask <- function (cytoqhts, thr, base_thr)
             if (l[x] == 1) 
             { 
               mask[x, ] <- 0
-            } else if (is.na(thr))
+            } else if (is.na(thr)) 
             {
               # the first curvep_resp higher than thr
               d <- l[x]

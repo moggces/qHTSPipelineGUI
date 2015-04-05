@@ -140,7 +140,7 @@ shinyServer(function(input, output) {
         #qhts <- curvep_output_generator()
         qhts <- post_curvep_curation()
         #result <- save_output_data(qhts, logm=logm)
-        result <- cbind(qhts$id_hill, qhts$concs, qhts$resps, qhts$curvep_resps,qhts$map)
+        result <- cbind(qhts$id_hill, qhts$concs, qhts$resps, qhts$curvep_resps,qhts$map, qhts$c_resps)
         
         # also add the comment lines
         write.table(qhts$paras_lines, file, row.names = FALSE, col.names = FALSE, sep="\t", quote=FALSE,append=FALSE)
@@ -157,7 +157,7 @@ shinyServer(function(input, output) {
     #strsplit(bb, ".", fixed=TRUE)[[1]][1]
     #bb
     result <- post_curvep_curation()  #post_curvep_curation
-    return(cbind(result$id_hill, result$resps, result$curvep_resps))
+    return(cbind(result$id_hill, result$resps, result$curvep_resps, result$c_resps))
   })
   
   output$test2 <- renderText({

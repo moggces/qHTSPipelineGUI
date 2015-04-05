@@ -39,7 +39,7 @@ shinyUI(pageWithSidebar(
     textInput('ushape', 'min.#points for u-shape: ', '4'),
     textInput('bshift', 'min.#flat points to detect baseline-shift: ', '3'),
     checkboxInput("cort_bshift", "baseline shift correction mode", FALSE),
-    checkboxInput("bylo", "favors corrections based on low conc-s", TRUE),
+    checkboxInput("bylo", "favors corrections based on low conc-s", FALSE),
     #checkboxInput("xtinf", "outputs additional curve metrics", TRUE),
     checkboxInput("xplax", "allow extrapolation beyond test conc. boundaries", FALSE),
     
