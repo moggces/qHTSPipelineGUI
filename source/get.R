@@ -65,6 +65,8 @@ get_curvep_results <- function (qhts,  paras, calculation_dir)
   id_hill$curvep_pod <- curvep_result$POD  
   id_hill$curvep_pod[id_hill$curvep_pod == -999] <- NA
   id_hill$curvep_thr <- as.numeric(paras$thr)
+  id_hill$curvep_ec50 <- curvep_result$EC50
+  id_hill$curvep_slope <- curvep_result$EC50_slope
   
   # similar to emax
   id_hill$curvep_cmax <- unlist(lapply(1:nrow(curvep_resps), function (x) { v <- curvep_resps[x, ]; v <- v[!is.na(v)]; return(max(abs(v))) } ))
@@ -316,17 +318,19 @@ get_clean_potent <- function (qhts, lconc_pod)
         repeat {
           init_seq <- init_seq - 1
           pre_id <- id_hill$Library_seq ==init_seq  & id_hill$Row == row & id_hill$Column == col
-          if (sum(pre_id) != 0 ) break
+          if (sum(pre_id) != 0 | init_seq == 0 ) break
         } 
-        
-        pre <- id_hill[pre_id, ] # get the line of previous plate
-        pre_act <- pre$curvep_wauc
-        pre_name <- rownames(pre)
-        pre_mark <- pre$curvep_remark
-        first_resp <- qhts$resps[pre_id, 1]
-        # 50 maybe replaced by the number later with curves that cause carryover
-        if ( (abs(pre_act) > 50 & sum(carry_ids %in% pre_name) == 0) | ( sum(carry_ids %in% pre_name) != 0 & abs(first_resp) > 80 & grepl('INVERSE|U_SHAPE', pre_mark) ))  
-        {carry_ids <- rbind(carry_ids, name) }
+        if (sum(pre_id) != 0)
+        {
+          pre <- id_hill[pre_id, ] # get the line of previous plate
+          pre_act <- pre$curvep_wauc
+          pre_name <- rownames(pre)
+          pre_mark <- pre$curvep_remark
+          first_resp <- qhts$resps[pre_id, 1]
+          # 50 maybe replaced by the number later with curves that cause carryover
+          if ( (abs(pre_act) > 50 & sum(carry_ids %in% pre_name) == 0) | ( sum(carry_ids %in% pre_name) != 0 & abs(first_resp) > 80 & grepl('INVERSE|U_SHAPE', pre_mark) ))  
+          {carry_ids <- rbind(carry_ids, name) }
+        }
       }
     }
   }
@@ -343,4 +347,10 @@ clean_resps <- function (qhts, ids, lconc_pod, comment)
   if ( lconc_pod) qhts[['id_hill']][ind, 'curvep_pod'] <- apply(qhts$concs[ind, ],1, function (y) { y <- y[!is.na(y)]; tail(y, 1)}) 
   qhts[['curvep_resps']][ind, ] <- 0
   return(qhts)
+}
+
+get_88_ids <- function ()
+{
+  result <- c(paste('Tox21_40000', seq(1,9), sep=''), paste('Tox21_4000', seq(10,88), sep=''))
+  return(result)
 }

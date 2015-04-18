@@ -1,9 +1,14 @@
-load_input_file <- function (file)
+load_input_file <- function (file, tox21_88=FALSE)
 {
   result <- list()
   skipl <- length(grep("^#", readLines(file)))
   
   df <- read.delim(file, quote = "",  skip=skipl, stringsAsFactors=FALSE)
+  if (tox21_88)
+  {
+    id_88 <- get_88_ids()
+    df <- df[df$Tox21.ID %in% id_88,]
+  }
   if (is.null(df$uniqueID)) stop("uniqueID column is required in the user input")
   if (is.null(df$pathway)) stop("pathway column is required in the user input")
   
